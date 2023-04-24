@@ -1,5 +1,6 @@
 from pulp import *
 import math
+from tabulate import tabulate
 days = [[6, 9, 9, 8, 3, 3, 7, 8, 8, 5, 3, 3, 2],  # Monday
         [6, 10, 7, 7, 3, 4, 7, 5, 9, 5, 3, 4, 3],  # Tuesday
         [7, 9, 9, 6, 3, 4, 6, 8, 7, 4, 3, 3, 3],  # Wednesday
@@ -42,7 +43,7 @@ problem += pulp.lpSum([x[i, j, k] for i in I for j in J for k in K])
 
 for i in I:
   for j in J:
-    problem += pulp.lpSum(x[i, j, k] for k in K) <= 0
+    problem += pulp.lpSum(x[i, j, k] for k in K) <= 1
 
 
 for i in I:
@@ -61,8 +62,18 @@ for k in K:
     problem += pulp.lpSum([x[i, j, k] for j in J]) <= math.ceil(nck[k]/ncc)
     problem += pulp.lpSum([x[i, j, k] for j in J]) >= math.floor(nck[k]/ncc)
 
+schedule = [[None for _ in range(8)] for _ in range(15)]
+schedule[0] = ['CSR', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun']
 
 problem.solve()
 for a in x.values():
   if a.valueOrDefault() == 1.0:
-    print(a)
+    open_bracket_index = a.name.find('(')
+    indices = a.name[open_bracket_index + 1:len(a.name)].split(',')
+    csr_index = int(indices[0]) + 1
+    day_column_index = int(indices[1][1:len(indices[1])]) + 1
+    working_shift = indices[2][1:len(indices[2]) - 1]
+    schedule[csr_index][0] = "NV" + str(csr_index)
+    schedule[csr_index][day_column_index] = "C" + working_shift
+
+print(tabulate(schedule, headers='firstrow', tablefmt='fancy_grid'))
